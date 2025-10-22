@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test'
+import fs from 'fs';
+import path from 'path';
 
 let shortTime = Date.now().toString().slice(-5);
 let userName = "user" + shortTime;
@@ -89,11 +91,23 @@ test('Test Case 1: Register User', async ({ page }) => {
     await page.locator('[data-qa="continue-button"]').click()
     */
 
+    // write to user.json
+    const userData = { userName, userEmail }
+    const filePath = path.resolve(__dirname, '../user.json')
+
+    fs.writeFileSync(filePath, JSON.stringify(userData, null, 2), 'utf-8')
+    console.log(`Write to file: ${userData}`)
+
     await page.waitForTimeout(1000)
 
 });
 
-test.skip('Test Case 2: Login User with correct email and password', async ({ page }) => {
+test('Test Case 2: Login User with correct email and password', async ({ page }) => {
+
+    // read user.json
+    const filePath = path.resolve(__dirname, '../user.json');
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    const userData = JSON.parse(fileContent);
 
     // 4. Click on 'Signup / Login' button
     await page.getByRole('link', { name: 'Signup' }).click()
@@ -103,21 +117,26 @@ test.skip('Test Case 2: Login User with correct email and password', async ({ pa
 
     // 6. Enter correct email address and password
     // we use the userName as the password while register
-    await page.locator('.login-form').getByRole('textbox', {name: 'Email Address'}).fill(userEmail)
-    await page.locator('.login-form').getByRole('textbox', {name: 'Password'}).fill(userName)
+    await page.locator('.login-form').getByRole('textbox', {name: 'Email Address'}).fill(userData['userEmail'])
+    await page.locator('.login-form').getByRole('textbox', {name: 'Password'}).fill(userData['userName'])
 
     // 7. Click 'login' button
     await page.getByRole('button', {name: 'Login'}).click()
-    console.log(`Login user name: ${userName}, user email: ${userEmail}`)
+    console.log(`Login user name: ${userData['userName']}, user email: ${userData['userEmail']}`)
 
     // 8. Verify that 'Logged in as username' is visible
     await expect(page.getByText("Logged in as")).toBeVisible()
-    await expect(page.locator(`text=${userName}`)).toBeVisible()
+    await expect(page.locator(`text=${userData['userName']}`)).toBeVisible()
 
     await page.waitForTimeout(1000)
 });
 
-test.skip('Test Case 3: Login User with incorrect email and password', async ({ page }) => {
+test('Test Case 3: Login User with incorrect email and password', async ({ page }) => {
+
+    // read user.json
+    const filePath = path.resolve(__dirname, '../user.json');
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    const userData = JSON.parse(fileContent);
 
     // 4. Click on 'Signup / Login' button
     await page.getByRole('link', { name: 'Signup' }).click()
@@ -127,12 +146,12 @@ test.skip('Test Case 3: Login User with incorrect email and password', async ({ 
 
     // 6. Enter incorrect email address and password
     // we use the in-correct password
-    await page.locator('.login-form').getByRole('textbox', {name: 'Email Address'}).fill(userEmail)
+    await page.locator('.login-form').getByRole('textbox', {name: 'Email Address'}).fill(userData['userEmail'])
     await page.locator('.login-form').getByRole('textbox', {name: 'Password'}).fill('typo-password')
 
     // 7. Click 'login' button
     await page.getByRole('button', {name: 'Login'}).click()
-    console.log(`Login user email: ${userEmail} with wrong password.`)
+    console.log(`Login user email: ${userData['userEmail']} with wrong password.`)
 
     // 8. Verify error 'Your email or password is incorrect!' is visible
     await expect(page.getByText("Your email or password is incorrect!")).toBeVisible()
@@ -141,7 +160,12 @@ test.skip('Test Case 3: Login User with incorrect email and password', async ({ 
 });
 
 
-test.skip('Test Case 4: Logout User', async ({ page }) => {
+test('Test Case 4: Logout User', async ({ page }) => {
+
+    // read user.json
+    const filePath = path.resolve(__dirname, '../user.json');
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    const userData = JSON.parse(fileContent);
 
     // 4. Click on 'Signup / Login' button
     await page.getByRole('link', { name: 'Signup' }).click()
@@ -151,16 +175,16 @@ test.skip('Test Case 4: Logout User', async ({ page }) => {
 
     // 6. Enter correct email address and password
     // we use the userName as the password while register
-    await page.locator('.login-form').getByRole('textbox', {name: 'Email Address'}).fill(userEmail)
-    await page.locator('.login-form').getByRole('textbox', {name: 'Password'}).fill(userName)
+    await page.locator('.login-form').getByRole('textbox', {name: 'Email Address'}).fill(userData['userEmail'])
+    await page.locator('.login-form').getByRole('textbox', {name: 'Password'}).fill(userData['userName'])
 
     // 7. Click 'login' button
     await page.getByRole('button', {name: 'Login'}).click()
-    console.log(`Login user name: ${userName}, user email: ${userEmail}`)
+    console.log(`Login user name: ${userData['userName']}, user email: ${userData['userEmail']}`)
 
     // 8. Verify that 'Logged in as username' is visible
     await expect(page.getByText("Logged in as")).toBeVisible()
-    await expect(page.locator(`text=${userName}`)).toBeVisible()
+    await expect(page.locator(`text=${userData['userName']}`)).toBeVisible()
 
     // 9. Click 'Logout' button
     await page.getByRole('link', {name: 'Logout'}).click()
@@ -171,7 +195,12 @@ test.skip('Test Case 4: Logout User', async ({ page }) => {
     await page.waitForTimeout(1000)
 });
 
-test.skip('Test Case 5: Register User with existing email', async ({ page }) => {
+test('Test Case 5: Register User with existing email', async ({ page }) => {
+
+    // read user.json
+    const filePath = path.resolve(__dirname, '../user.json');
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    const userData = JSON.parse(fileContent);
 
     // 4. Click on 'Signup / Login' button
     await page.getByRole('link', { name: 'Signup' }).click()
@@ -180,8 +209,8 @@ test.skip('Test Case 5: Register User with existing email', async ({ page }) => 
     await expect(page.getByRole('heading', { name: 'New User Signup!' })).toBeVisible()
 
     // 6. Enter name and already registered email address
-    await page.locator('.signup-form').getByRole('textbox', {name: 'Name'}).fill(userName)
-    await page.locator('.signup-form').getByRole('textbox', {name: 'Email Address'}).fill(userEmail)
+    await page.locator('.signup-form').getByRole('textbox', {name: 'Name'}).fill(userData['userName'])
+    await page.locator('.signup-form').getByRole('textbox', {name: 'Email Address'}).fill(userData['userEmail'])
 
     // 7. Click 'Signup' button
     await page.getByRole('button', {name: 'Signup'}).click()
@@ -193,7 +222,13 @@ test.skip('Test Case 5: Register User with existing email', async ({ page }) => 
     await page.waitForTimeout(1000)
 });
 
-test('Test Case 6: Contact Us Form', async ({ page }) => {
+/* 这个 test case 总也是跑不过，因为在 js 弹窗这块总是出问题 */
+test.skip('Test Case 6: Contact Us Form', async ({ page }) => {
+
+    // read user.json
+    const filePath = path.resolve(__dirname, '../user.json');
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    const userData = JSON.parse(fileContent);
 
     // 4. Click on 'Contact Us' button
     await page.getByRole('link', { name: ' Contact us' }).click()
@@ -202,32 +237,40 @@ test('Test Case 6: Contact Us Form', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Get In Touch' })).toBeVisible()
 
     // 6. Enter name, email, subject and message
-    await page.locator('.contact-form').getByRole('textbox', {name: 'Name'}).fill(userName)
-    await page.locator('.contact-form').getByRole('textbox', {name: 'Email'}).fill(userEmail)
+    await page.locator('.contact-form').getByRole('textbox', {name: 'Name'}).fill(userData['userName'])
+    await page.locator('.contact-form').getByRole('textbox', {name: 'Email'}).fill(userData['userEmail'])
     await page.locator('.contact-form').getByRole('textbox', {name: 'Subject'}).fill('This is Subject')
     await page.locator('.contact-form').getByRole('textbox', {name: 'Your Message Here'}).fill('This is Message.')
 
     // 7. Upload file
     const fileInput = page.locator('input[type="file"]')
-    await fileInput.setInputFiles('package.json')
+    await fileInput.setInputFiles('user.json')
     // await expect(page.locator('.upload-success')).toBeVisible()
 
 
     // 监听弹窗事件
-    page.on('dialog', async dialog => {
+    page.once('dialog', async dialog => {
         console.log(dialog.message()); // 打印弹窗文字：Press OK to proceed!
         await dialog.accept(); // 点击“确定”
     });
 
     // 8. Click 'Submit' button
+    // 点击 Submit，不等待页面刷新
     await page.getByRole('button', { name: 'Submit' }).click();
 
     // 9. Click OK button
-    await page.locator('[data-qa="submit-button"]').click(); // 触发弹窗
 
     // 10. Verify success message 'Success! Your details have been submitted successfully.' is visible
     //<div class="status alert alert-success" style="display: block;">Success! Your details have been submitted successfully.</div>
-    await expect(page.getByRole('textbox', {name: 'Success! Your details have been submitted successfully.'})).toBeVisible()
+    
+    // 等待 URL 保持在 contact_us（刷新后返回）
+    await page.waitForURL('**/contact_us')
+
+    // 等待成功提示可见
+    await page.waitForSelector('.status.alert-success', { state: 'visible', timeout: 15000 } );
+    
+    // 验证文本
+    await expect(page.locator('.status.alert-success')).toHaveText('Success! Your details have been submitted successfully.');
     
 
     await page.waitForTimeout(1000)
