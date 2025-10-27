@@ -275,3 +275,61 @@ test.skip('Test Case 6: Contact Us Form', async ({ page }) => {
 
     await page.waitForTimeout(1000)
 });
+
+
+test('Test Case 7: Verify Test Cases Page', async ({ page }) => {
+
+    // 4. Click on 'Test Cases' button
+    await page.locator('.nav.navbar-nav').getByRole('link', { name: /Test Cases/i }).click()
+
+    // 5. Verify user is navigated to test cases page successfully
+    await expect(page.locator('.row').getByRole('heading', {name: 'Test Cases'})).toBeVisible()
+});
+
+
+test('Test Case 8: Verify All Products and product detail page', async ({ page }) => {
+
+    // 4. Click on 'Products' button
+    await page.locator('.nav.navbar-nav').getByRole('link', { name: /Products/i }).click()
+    // 5. Verify user is navigated to ALL PRODUCTS page successfully
+    await expect(page.getByRole('heading', { name: 'All Products' })).toBeVisible();
+    // 6. The products list is visible
+    await expect(page.locator('.features_items')).toBeVisible()
+    // 7. Click on 'View Product' of first product
+    // await page.locator('.col-sm-4').first().getByRole('link', {name: 'View Product'}).click()
+    await page.locator('text=View Product').first().click();
+
+    // 8. User is landed to product detail page
+    await expect(page).toHaveURL(/.*\/product_details\/1/);
+
+
+    // 9. Verify that detail detail is visible: product name, category, price, availability, condition, brand
+    await expect(page.locator('.product-information').getByRole("heading", { level: 2})).toBeVisible()
+    await expect(page.locator('.product-information').locator('text=Category:')).toBeVisible()
+    await expect(page.locator('.product-information').locator('text=Rs.')).toBeVisible()
+    await expect(page.locator('.product-information').locator('text=Availability:')).toBeVisible()
+    await expect(page.locator('.product-information').locator('text=Condition:')).toBeVisible()
+    await expect(page.locator('.product-information').locator('text=Brand:')).toBeVisible()
+
+});
+
+test('Test Case 9: Search Product', async ({ page }) => {
+
+    // 4. Click on 'Products' button
+    await page.locator('.nav.navbar-nav').getByRole('link', { name: /Products/i }).click()
+    // 5. Verify user is navigated to ALL PRODUCTS page successfully
+    await expect(page.getByRole('heading', { name: 'All Products' })).toBeVisible();
+    // 6. Enter product name in search input and click search button Jeans
+    await page.locator('#search_product').fill('Jeans')
+    await page.locator('#submit_search').click()
+    // 7. Verify 'SEARCHED PRODUCTS' is visible single-products
+    await expect(page.getByRole('heading', {name: 'Searched Products'})).toBeVisible()
+    // 8. Verify all the products related to search are visible
+    const products = page.locator('div.features_items').locator('div.single-products')
+    const productCount = await products.count()
+
+    for (let i = 0; i < productCount; i++) {
+        await expect(products.nth(i)).toBeVisible()
+    }
+
+});
