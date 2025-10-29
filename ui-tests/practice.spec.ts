@@ -300,7 +300,7 @@ test('Test Case 8: Verify All Products and product detail page', async ({ page }
     await page.locator('text=View Product').first().click();
 
     // 8. User is landed to product detail page
-    await expect(page).toHaveURL(/.*\/product_details\/1/);
+    await expect(page).toHaveURL(/.*\/product_details\/1/)
 
 
     // 9. Verify that detail detail is visible: product name, category, price, availability, condition, brand
@@ -331,5 +331,121 @@ test('Test Case 9: Search Product', async ({ page }) => {
     for (let i = 0; i < productCount; i++) {
         await expect(products.nth(i)).toBeVisible()
     }
+
+});
+
+test('Test Case 10: Verify Subscription in home page', async ({ page }) => {
+
+    // 4. Scroll down to footer
+    await page.locator('#footer').scrollIntoViewIfNeeded()
+    // 5. Verify text 'SUBSCRIPTION'
+    await expect(page.locator('text=Subscription')).toBeVisible()
+    // 6. Enter email address in input and click arrow button
+    await page.locator('#susbscribe_email').fill('any@abc.com')
+    await page.locator('#subscribe').click()
+    // 7. Verify success message 'You have been successfully subscribed!' is visible
+    await expect(page.locator('text="You have been successfully subscribed!"')).toBeVisible()
+
+    await page.waitForTimeout(3000)
+
+});
+
+test('Test Case 11: Verify Subscription in Cart page', async ({ page }) => {
+
+    // 4. Click 'Cart' button
+    await page.locator('.nav.navbar-nav').getByRole('link', { name: /Cart/i }).click()
+    await expect(page).toHaveTitle('Automation Exercise - Checkout')
+    // 5. Scroll down to footer
+    await page.locator('#footer').scrollIntoViewIfNeeded()
+    // 6. Verify text 'SUBSCRIPTION'
+    await expect(page.locator('text=Subscription')).toBeVisible()
+    // 7. Enter email address in input and click arrow button
+    await page.locator('#susbscribe_email').fill('any@abc.com')
+    await page.locator('#subscribe').click()
+    // 8. Verify success message 'You have been successfully subscribed!' is visible
+    await expect(page.locator('text="You have been successfully subscribed!"')).toBeVisible()
+
+    await page.waitForTimeout(3000)
+
+});
+
+test('Test Case 12: Add Products in Cart', async ({ page }) => {
+
+    let prices: number[] = []
+    // 4. Click 'Products' button
+    await page.locator('.nav.navbar-nav').getByRole('link', { name: /Products/i }).click()
+    await expect(page.getByRole('heading', { name: 'All Products' })).toBeVisible();
+
+    // 5. Hover over first product and click 'Add to cart'
+    const products = page.locator('div.features_items').locator('div.single-products')
+    await products.first().hover()
+    await page.waitForTimeout(1000)
+    const firstText = await products.first().locator('.product-overlay').locator('h2').textContent()
+    prices.push(Number(firstText?.split(' ')[1] ?? 0))
+    console.log(`First product proce is ${firstText}`)
+    await products.first().locator('.product-overlay').locator('.add-to-cart').click()
+
+    // 6. Click 'Continue Shopping' button
+    const modal = page.getByRole('button', {name: 'Continue Shopping'})
+    await modal.waitFor({ state: 'visible' });
+    await modal.click()
+
+    // 7. Hover over second product and click 'Add to cart'
+    await products.nth(2).hover()
+    await page.waitForTimeout(1000)
+    const secondText = await products.nth(2).locator('.product-overlay').locator('h2').textContent()
+    prices.push(Number(secondText?.split(' ')[1] ?? 0))
+    console.log(`Second product proce is ${secondText}`)
+    await products.nth(2).locator('.product-overlay').locator('.add-to-cart').click()
+
+    // 8. Click 'View Cart' button
+    await page.getByRole('link', {name: 'View Cart'}).click()
+    await expect(page.getByText('Shopping Cart')).toBeVisible();
+
+    // 9. Verify both products are added to Cart
+    const rows = page.locator('tbody tr')
+    const rowCount = await rows.count();
+    expect(rowCount).toBe(2)
+
+    // 10. Verify their prices, quantity and total price
+    for (let i = 0; i < rowCount; i++) {
+        const description = await rows.nth(i).locator('.cart_description').getByRole('link').textContent()
+        console.log(`product name: ${description}`)
+
+        const priceText = await rows.nth(i).locator('.cart_price').locator('p').textContent()
+        const priceValue = Number(priceText?.split(' ')[1] ?? 0)
+        console.log(`product price: ${priceValue}`)
+
+        const quantity = await rows.nth(i).getByRole('button').textContent()
+        console.log(`product quantity: ${quantity}`)
+        expect(Number(quantity)).toBe(1)
+
+        const cartPrice = prices.shift()
+        expect(priceValue).toBe(cartPrice)
+    }
+    await page.waitForTimeout(3000)
+
+});
+
+test('Test Case 13: Verify Product quantity in Cart', async ({ page }) => {
+
+    // 4. Click 'View Product' for any product on home page
+    await page.getByRole('link', {name: 'View Product'}).nth(0).click()
+    // 5. Verify product detail is opened
+    await expect(page).toHaveURL(/.*product_details.*/)
+    // 6. Increase quantity to 4
+    await page.locator('#quantity').fill('4')
+    // 7. Click 'Add to cart' button
+    await page.getByRole('button', {name: ' Add to cart'}).click()
+    // 8. Click 'View Cart' button
+    await page.getByRole('link', {name: 'View Cart'}).click()
+    await expect(page.getByText('Shopping Cart')).toBeVisible();
+    // 9. Verify that product is displayed in cart page with exact quantity
+    const rows = page.locator('tbody tr')
+    const quantity = await rows.nth(0).getByRole('button').textContent()
+
+    expect(Number(quantity)).toBe(4)
+
+    await page.waitForTimeout(3000)
 
 });
