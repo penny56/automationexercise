@@ -6,7 +6,6 @@ let shortTime = Date.now().toString().slice(-5);
 let userName = "user" + shortTime;
 let userEmail = shortTime + "@abc.com";
 
-
 test.beforeEach(async ({ page }, testInfo) => {
     console.log('>>> Start to run -> ', testInfo.title)
 
@@ -64,9 +63,12 @@ test('Test Case 1: Register User', async ({ page }) => {
     const countryDropDown = 'select#country';
     await page.selectOption(countryDropDown, { label: 'Canada'})
 
-    await page.locator('#state').fill('Hebei')
-    await page.locator('#city').fill('Beijing')
-    await page.locator('#zipcode').fill('100000')
+    const state: string = 'Hebei'
+    await page.locator('#state').fill(state)
+    const city: string = 'Beijing'
+    await page.locator('#city').fill(city)
+    const zipCode: string = '100000'
+    await page.locator('#zipcode').fill(zipCode)
     await page.locator('#mobile_number').fill('15611001100')
 
     // 13. Click 'Create Account button'
@@ -92,7 +94,7 @@ test('Test Case 1: Register User', async ({ page }) => {
     */
 
     // write to user.json
-    const userData = { userName, userEmail }
+    const userData = { userName, userEmail, state, city, zipCode }
     const filePath = path.resolve(__dirname, '../user.json')
 
     fs.writeFileSync(filePath, JSON.stringify(userData, null, 2), 'utf-8')
@@ -427,6 +429,7 @@ test('Test Case 12: Add Products in Cart', async ({ page }) => {
 
 });
 
+
 test('Test Case 13: Verify Product quantity in Cart', async ({ page }) => {
 
     // 4. Click 'View Product' for any product on home page
@@ -445,6 +448,324 @@ test('Test Case 13: Verify Product quantity in Cart', async ({ page }) => {
     const quantity = await rows.nth(0).getByRole('button').textContent()
 
     expect(Number(quantity)).toBe(4)
+
+    await page.waitForTimeout(3000)
+
+});
+
+/* step 18 verfication failed */
+test('Test Case 14: Place Order: Register while Checkout', async ({ page }) => {
+
+    // 4. Add products to cart
+    const products = page.locator('div.features_items').locator('div.single-products')
+    await products.first().hover()
+    await page.waitForTimeout(500)
+    await products.first().locator('.product-overlay').locator('.add-to-cart').click()
+
+    const modal = page.getByRole('button', {name: 'Continue Shopping'})
+    await modal.waitFor({ state: 'visible' });
+    await modal.click()
+
+    await products.nth(2).hover()
+    await page.waitForTimeout(500)
+
+    await products.nth(2).locator('.product-overlay').locator('.add-to-cart').click()
+
+    // 5. Click 'Cart' button
+    await page.getByRole('link', {name: 'View Cart'}).click()
+
+    // 6. Verify that cart page is displayed
+    await expect(page.getByText('Shopping Cart')).toBeVisible();
+
+    // 7. Click Proceed To Checkout
+    await page.locator('text=Proceed To Checkout').click()
+
+    // 8. Click 'Register / Login' button
+    await page.getByRole('link', {name: 'Register / Login'}).click()
+
+    // 9. Fill all details in Signup and create account <- record the address and info ->
+    await page.locator('.signup-form').getByRole('textbox', {name: 'Name'}).fill(userName)
+    await page.locator('.signup-form').getByRole('textbox', {name: 'Email Address'}).fill(userEmail)
+    await page.getByRole('button', {name: 'Signup'}).click()
+
+    console.log(`Register user name: ${userName}, user email: ${userEmail}`)
+
+    await expect(page.getByRole('heading', {name: 'Enter Account Information'})).toBeVisible()
+
+    await page.locator('#password').fill(userName)
+    const daysDropDown = 'select#days';
+    await page.selectOption(daysDropDown, { label: '2'})
+    const monthsDropDown = 'select#months';
+    await page.selectOption(monthsDropDown, { label: 'February'})
+    const yearsDropDown = 'select#years';
+    await page.selectOption(yearsDropDown, { label: '2020'})
+
+    await page.locator('#first_name').fill('Emily')
+    await page.locator('#last_name').fill('Al')
+    await page.locator('#address1').fill('Haidian')
+
+    const countryDropDown = 'select#country';
+    await page.selectOption(countryDropDown, { label: 'Canada'})
+
+    const state = 'Hebei'
+    await page.locator('#state').fill(state)
+    const city = 'Beijing'
+    await page.locator('#city').fill(city)
+    const zipCode = '100000'
+    await page.locator('#zipcode').fill(zipCode)
+    const mobileNumber = '15611001100'
+    await page.locator('#mobile_number').fill(mobileNumber)
+
+    await page.getByRole('button', {name: 'Create Account'}).click()
+
+    // 10. Verify 'ACCOUNT CREATED!' and click 'Continue' button
+    await expect(page.getByRole('heading', {name: 'Account Created!'})).toBeVisible()
+    await page.locator('[data-qa="continue-button"]').click()
+
+    // 11. Verify ' Logged in as username' at top
+    await expect(page.getByText("Logged in as")).toBeVisible()
+    await expect(page.locator(`text=${userName}`)).toBeVisible()
+
+    // 12.Click 'Cart' button
+    await page.locator('.nav.navbar-nav').getByRole('link', { name: /Cart/i }).click()
+
+    // 13. Click 'Proceed To Checkout' button
+    await page.locator('text=Proceed To Checkout').click()
+
+    // 14. Verify Address Details and Review Your Order
+    const filledAddress = city + ' ' + state + ' ' + zipCode
+    console.log(`filled in address is: ${filledAddress}`)
+    let confirmAddress = await page.locator('#address_delivery').locator('.address_city.address_state_name.address_postcode').textContent() ?? ''
+    confirmAddress = confirmAddress = confirmAddress.replace(/[\s\r\n]+/g, ' ')
+    confirmAddress = confirmAddress.trim()
+    console.log(`confirmed address is: ${confirmAddress}`)
+    expect(confirmAddress).toBe(filledAddress)
+
+    // 15. Enter description in comment text area and click 'Place Order'
+    await page.locator('#ordermsg textarea').fill('This is a comment.')
+    await page.getByRole('link', {name: 'Place Order'}).click()
+
+    // 16. Enter payment details: Name on Card, Card Number, CVC, Expiration date
+    await expect(page.locator('#header')).toBeVisible()
+
+    await page.locator('input[name="name_on_card"]').fill('Sam')
+    await page.locator('input[name="card_number"]').fill('111111111111')
+    await page.locator('input[name="cvc"]').fill('313')
+    await page.locator('input[name="expiry_month"]').fill('01')
+    await page.locator('input[name="expiry_year"]').fill('2010')
+
+    // 17. Click 'Pay and Confirm Order' button
+    await page.locator('#submit').click()
+
+    // 18. Verify success message 'Your order has been placed successfully!'
+    /*
+    const successMsg = page.locator('#order-message .alert-success', { hasText: /Your order has been placed successfully!/i})
+    await successMsg.waitFor({ state: 'visible', timeout: 3000 })
+    */
+
+    // 19. Click 'Delete Account' button
+    await page.locator('.nav.navbar-nav').getByRole('link', {name: ' Delete Account'}).click()
+
+    // 20. Verify 'ACCOUNT DELETED!' and click 'Continue' button
+    await expect(page.locator('text=Account Deleted!')).toBeVisible()
+    await page.getByRole('link', {name: 'Continue'}).click()
+
+    await page.waitForTimeout(3000)
+
+});
+
+test('Test Case 15: Place Order: Register before Checkout', async ({ page }) => {
+
+    // 4. Click 'Signup / Login' button
+    await page.getByRole('link', { name: 'Signup' }).click()
+    
+    // 5. Fill all details in Signup and create account
+    await page.locator('.signup-form').getByRole('textbox', {name: 'Name'}).fill(userName)
+    await page.locator('.signup-form').getByRole('textbox', {name: 'Email Address'}).fill(userEmail)
+    await page.getByRole('button', {name: 'Signup'}).click()
+
+    console.log(`Register user name: ${userName}, user email: ${userEmail}`)
+
+    await expect(page.getByRole('heading', {name: 'Enter Account Information'})).toBeVisible()
+
+    await page.locator('#password').fill(userName)
+    const daysDropDown = 'select#days';
+    await page.selectOption(daysDropDown, { label: '2'})
+    const monthsDropDown = 'select#months';
+    await page.selectOption(monthsDropDown, { label: 'February'})
+    const yearsDropDown = 'select#years';
+    await page.selectOption(yearsDropDown, { label: '2020'})
+
+    await page.locator('#first_name').fill('Emily')
+    await page.locator('#last_name').fill('Al')
+    await page.locator('#address1').fill('Haidian')
+
+    const countryDropDown = 'select#country';
+    await page.selectOption(countryDropDown, { label: 'Canada'})
+
+    const state = 'Hebei'
+    await page.locator('#state').fill(state)
+    const city = 'Beijing'
+    await page.locator('#city').fill(city)
+    const zipCode = '100000'
+    await page.locator('#zipcode').fill(zipCode)
+    const mobileNumber = '15611001100'
+    await page.locator('#mobile_number').fill(mobileNumber)
+
+    await page.getByRole('button', {name: 'Create Account'}).click()
+
+    // 6. Verify 'ACCOUNT CREATED!' and click 'Continue' button
+    await expect(page.getByRole('heading', {name: 'Account Created!'})).toBeVisible()
+    await page.locator('[data-qa="continue-button"]').click()
+
+    // 7. Verify ' Logged in as username' at top
+    await expect(page.getByText("Logged in as")).toBeVisible()
+    await expect(page.locator(`text=${userName}`)).toBeVisible()
+
+    // 8. Add products to cart
+    const products = page.locator('div.features_items').locator('div.single-products')
+    await products.first().hover()
+    await page.waitForTimeout(500)
+    await products.first().locator('.product-overlay').locator('.add-to-cart').click()
+
+    const modal = page.getByRole('button', {name: 'Continue Shopping'})
+    await modal.waitFor({ state: 'visible' });
+    await modal.click()
+
+    await products.nth(2).hover()
+    await page.waitForTimeout(500)
+
+    await products.nth(2).locator('.product-overlay').locator('.add-to-cart').click()
+
+    // 9. Click 'Cart' button
+    await page.getByRole('link', {name: 'View Cart'}).click()
+
+    // 10. Verify that cart page is displayed
+    await expect(page.getByText('Shopping Cart')).toBeVisible();
+
+    // 11. Click Proceed To Checkout
+    await page.locator('text=Proceed To Checkout').click()
+
+    // 12. Verify Address Details and Review Your Order
+    const filledAddress = city + ' ' + state + ' ' + zipCode
+    console.log(`filled in address is: ${filledAddress}`)
+    let confirmAddress = await page.locator('#address_delivery').locator('.address_city.address_state_name.address_postcode').textContent() ?? ''
+    confirmAddress = confirmAddress = confirmAddress.replace(/[\s\r\n]+/g, ' ')
+    confirmAddress = confirmAddress.trim()
+    console.log(`confirmed address is: ${confirmAddress}`)
+    expect(confirmAddress).toBe(filledAddress)
+
+    // 13. Enter description in comment text area and click 'Place Order'
+    await page.locator('#ordermsg textarea').fill('This is a comment.')
+    await page.getByRole('link', {name: 'Place Order'}).click()
+
+    // 14. Enter payment details: Name on Card, Card Number, CVC, Expiration date
+    await expect(page.locator('#header')).toBeVisible()
+
+    await page.locator('input[name="name_on_card"]').fill('Sam')
+    await page.locator('input[name="card_number"]').fill('111111111111')
+    await page.locator('input[name="cvc"]').fill('313')
+    await page.locator('input[name="expiry_month"]').fill('01')
+    await page.locator('input[name="expiry_year"]').fill('2010')
+
+    // 15. Click 'Pay and Confirm Order' button
+    await page.locator('#submit').click()
+
+    // 16. Verify success message 'Your order has been placed successfully!'
+    /*
+    const successMsg = page.locator('#order-message .alert-success', { hasText: /Your order has been placed successfully!/i})
+    await successMsg.waitFor({ state: 'visible', timeout: 3000 })
+    */
+
+    // 17. Click 'Delete Account' button
+    await page.locator('.nav.navbar-nav').getByRole('link', {name: ' Delete Account'}).click()
+
+    // 18. Verify 'ACCOUNT DELETED!' and click 'Continue' button
+    await expect(page.locator('text=Account Deleted!')).toBeVisible()
+    await page.getByRole('link', {name: 'Continue'}).click()
+
+    await page.waitForTimeout(3000)
+
+});
+
+test('Test Case 16: Place Order: Login before Checkout', async ({ page }) => {
+    
+    // read user.json
+    const filePath = path.resolve(__dirname, '../user.json');
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    const userData = JSON.parse(fileContent);
+
+    // 4. Click 'Signup / Login' button
+    await page.getByRole('link', { name: 'Signup' }).click()
+    await expect(page.getByRole('heading', {name: 'Login to your account'})).toBeVisible()
+
+    // 5. Fill email, password and click 'Login' button
+    await page.locator('.login-form').getByRole('textbox', {name: 'Email Address'}).fill(userData['userEmail'])
+    await page.locator('.login-form').getByRole('textbox', {name: 'Password'}).fill(userData['userName'])
+
+    await page.getByRole('button', {name: 'Login'}).click()
+    console.log(`Login user name: ${userData['userName']}, user email: ${userData['userEmail']}`)
+
+    // 6. Verify 'Logged in as username' at top
+    await expect(page.getByText("Logged in as")).toBeVisible()
+    await expect(page.locator(`text=${userData['userName']}`)).toBeVisible()
+
+    // 7. Add products to cart
+    const products = page.locator('div.features_items').locator('div.single-products')
+    await products.first().hover()
+    await page.waitForTimeout(500)
+    await products.first().locator('.product-overlay').locator('.add-to-cart').click()
+
+    const modal = page.getByRole('button', {name: 'Continue Shopping'})
+    await modal.waitFor({ state: 'visible' });
+    await modal.click()
+
+    await products.nth(2).hover()
+    await page.waitForTimeout(500)
+
+    await products.nth(2).locator('.product-overlay').locator('.add-to-cart').click()
+
+    // 8. Click 'Cart' button
+    await page.getByRole('link', {name: 'View Cart'}).click()
+
+    // 9. Verify that cart page is displayed
+    await expect(page.getByText('Shopping Cart')).toBeVisible();
+
+    // 10. Click Proceed To Checkout
+    await page.locator('text=Proceed To Checkout').click()
+
+    // 11. Verify Address Details and Review Your Order
+    const filledAddress = userData['city'] + ' ' + userData['state'] + ' ' + userData['zipCode']
+    console.log(`filled in address is: ${filledAddress}`)
+    let confirmAddress = await page.locator('#address_delivery').locator('.address_city.address_state_name.address_postcode').textContent() ?? ''
+    confirmAddress = confirmAddress = confirmAddress.replace(/[\s\r\n]+/g, ' ')
+    confirmAddress = confirmAddress.trim()
+    console.log(`confirmed address is: ${confirmAddress}`)
+    expect(confirmAddress).toBe(filledAddress)
+
+    // 12. Enter description in comment text area and click 'Place Order'
+    await page.locator('#ordermsg textarea').fill('This is a comment.')
+    await page.getByRole('link', {name: 'Place Order'}).click()
+
+    // 13. Enter payment details: Name on Card, Card Number, CVC, Expiration date
+    await expect(page.locator('#header')).toBeVisible()
+
+    await page.locator('input[name="name_on_card"]').fill('Sam')
+    await page.locator('input[name="card_number"]').fill('111111111111')
+    await page.locator('input[name="cvc"]').fill('313')
+    await page.locator('input[name="expiry_month"]').fill('01')
+    await page.locator('input[name="expiry_year"]').fill('2010')
+
+    // 14. Click 'Pay and Confirm Order' button
+    await page.locator('#submit').click()
+
+    // 15. Verify success message 'Your order has been placed successfully!'
+    // 16. Click 'Delete Account' button
+    await page.locator('.nav.navbar-nav').getByRole('link', {name: ' Delete Account'}).click()
+
+    // 17. Verify 'ACCOUNT DELETED!' and click 'Continue' button
+    await expect(page.locator('text=Account Deleted!')).toBeVisible()
+    await page.getByRole('link', {name: 'Continue'}).click()
 
     await page.waitForTimeout(3000)
 
